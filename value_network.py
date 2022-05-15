@@ -11,7 +11,7 @@ class ValueNetwork(nn.Module):
 
     def __init__(self, network, board_size, device):
         super().__init__()
-        self._network = network
+        self._network = network.to(device=device)
         self.board_size = board_size
         self._device = device
 
