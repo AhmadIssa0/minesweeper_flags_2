@@ -3,6 +3,7 @@ from collections import deque
 from typing import List, Set, Tuple
 import utils
 import random
+from colorama import Fore, Back, Style
 
 
 class GameState:
@@ -17,7 +18,6 @@ class GameState:
         self.is_blues_turn = is_blues_turn
         self.blue_flags_captured = blue_flags_captured
         self.red_flags_captured = red_flags_captured
-
         self.num_flags_on_board = torch.sum(board == GameState.FLAG).item()
         self.winning_score = self.num_flags_on_board // 2 + 1
         self.board_size = board.size(0)
@@ -113,13 +113,15 @@ class GameState:
         for row in range(self.board_size):
             for col in range(self.board_size):
                 if not self.visible[row, col]:
-                    s += '?'
+                    s += '.'
                 elif self.board[row, col] == GameState.FLAG:
-                    s += '*'
+                    c = Fore.BLUE if (row, col) in self.blue_flags_captured else Fore.RED
+                    s += f'{c}*{Style.RESET_ALL}'
                 elif self.board[row, col] == GameState.EMPTY:
                     s += '-'
                 else:
                     s += str(self.board[row, col].item())
+                s += ' '
             s += '\r\n'
         return s
 

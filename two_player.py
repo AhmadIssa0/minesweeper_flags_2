@@ -20,13 +20,13 @@ class GameManager:
                 move = self.get_move_from_console()
             else:
                 move = self.policy.get_move(self.gamestate)
-            self.gamestate.make_move(*move)
+            self.gamestate = self.gamestate.make_move(*move)
         print('Game over.')
 
     def get_move_from_console(self) -> "Move":
         move = None
-        while not move or not self.gamestate.is_move_valid(move):
-            move = self._parse_move_string(input('Please enter a valid move:'))
+        while not move or not self.gamestate.is_move_valid(*move):
+            move = self._parse_move_string(input('Please enter a valid move: '))
         return move
 
     def _parse_move_string(self, move_str):
@@ -47,5 +47,3 @@ class GameManager:
     def play_policy_move(self):
         policy_move = self.policy.get_move(self.gamestate)
         self.gamestate.make_move(*policy_move)
-
-
