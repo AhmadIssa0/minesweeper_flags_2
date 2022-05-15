@@ -32,6 +32,13 @@ class GameState:
     def _create_visible(self, fn):
         return utils.create_2d_tensor_from_func(rows=self.board_size, cols=self.board_size, fn=fn, dtype=torch.bool)
 
+    def is_move_valid(self, row, col):
+        if (not (0 <= row < self.board_size and 0 <= col < self.board_size) or
+                self.is_game_over() or self.visible[row, col]):
+            return False
+        else:
+            return True
+
     def make_move(self, row, col):
         assert 0 <= row < self.board_size and 0 <= col < self.board_size, \
             f"Can't make move: ({row}, {col}), since this is not a square on a board of size {self.board_size}."
