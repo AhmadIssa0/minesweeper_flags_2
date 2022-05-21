@@ -64,7 +64,7 @@ class Trainer:
                 if gs.is_game_over():
                     gs = GameState.create_new_game(self._board_size)
 
-                move = self._policy.get_move(gs, eps=0.2 * (1. - step / max_steps))  # set eps here
+                move = self._policy.get_move(gs, eps=0.1 * (1. - step / max_steps))  # set eps here
                 state = self._value_network.game_state_to_input(gs).squeeze(0)
                 action = self._move_to_action(move)
                 reward = 1 if gs.board[move] == GameState.FLAG else 0
