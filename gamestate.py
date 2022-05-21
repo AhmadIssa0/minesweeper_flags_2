@@ -22,6 +22,23 @@ class GameState:
         self.winning_score = self.num_flags_on_board // 2 + 1
         self.board_size = board.size(0)
 
+    def num_blue_flags(self):
+        return len(self.blue_flags_captured)
+
+    def num_red_flags(self):
+        return len(self.red_flags_captured)
+
+    def winner(self):
+        if not self.is_game_over():
+            return None
+        elif self.num_red_flags() > self.num_blue_flags():
+            return 'Red'
+        else:
+            return 'Blue'
+
+    def is_visible(self, row, col):
+        return self.visible[row, col].item()
+
     def is_game_over(self):
         return len(self.blue_flags_captured) >= self.winning_score or len(self.red_flags_captured) >= self.winning_score
 

@@ -52,7 +52,7 @@ if __name__ == '__main__':
     print(f'Number of params: {sum(p.numel() for p in value_network.parameters() if p.requires_grad)}')
 
     value_network2 = torch.load('convnext2_b10.p')
-    train_ai(value_network, board_size, comparison_policy=policy.OptimalPolicy(value_network2))
+    #train_ai(value_network, board_size, comparison_policy=policy.OptimalPolicy(value_network2))
     # print(score_match(board_size, policy.OptimalPolicy(value_network2), policy.OptimalPolicy(value_network), 200))
 
-    #print(score_match(board_size, policy.OptimalPolicy(value_network), policy.RandomPolicy, num_games=100))
+    print(score_match(board_size, policy.OptimalPolicy(value_network), policy.RandomPolicy, num_games=1000))
