@@ -32,7 +32,7 @@ def human_vs_ai(value_network, board_size, human_first):
     GameManager(human_first, ai_policy, board_size).play_loop()
 
 def train_ai(value_network, board_size, **kwargs):
-    trainer = Trainer(value_network, board_size, 20000, device=device, save_path=save_path, learning_rate=1e-3 / 2, **kwargs)
+    trainer = Trainer(value_network, board_size, 20000, device=device, save_path=save_path, learning_rate=2e-4, **kwargs)
     trainer.train(max_steps=200000, batch_size=300)
     print(score_match(board_size, policy.RandomPolicy, policy.RandomPolicy, num_games=100))
     print(score_match(board_size, policy.OptimalPolicy(value_network), policy.RandomPolicy, num_games=100))

@@ -6,7 +6,12 @@ import random
 import numpy as np
 
 
-class EpGreedyPolicy:
+class Policy:
+    def get_move(self, gs: GameState):
+        return NotImplementedError()
+
+
+class EpGreedyPolicy(Policy):
     def __init__(self, value_network: ValueNetwork, eps=0.0):
         self._value_network = value_network
         self.eps = eps
@@ -40,7 +45,7 @@ class OptimalPolicy(EpGreedyPolicy):
         super().__init__(value_network=value_network, eps=0.0)
 
 
-class RandomPolicy:
+class RandomPolicy(Policy):
     @staticmethod
     def get_move(gs: GameState):
         assert not gs.is_game_over(), "Can't make move since game is over."

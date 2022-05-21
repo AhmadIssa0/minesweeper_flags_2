@@ -29,6 +29,7 @@ class Trainer:
         self._save_path = save_path
         self._alpha = alpha
         self._gamma = gamma
+        self._learning_rate = learning_rate
         self._er_buffer = ExperienceReplay(size=replay_buffer_size, device=device)
         self._opponent_policy = comparison_policy if comparison_policy else RandomPolicy
 
@@ -37,7 +38,7 @@ class Trainer:
         action[move] = True
         return action
 
-    def train(self, max_steps, batch_size, network_update_freq=3000):
+    def train(self, max_steps, batch_size, network_update_freq=5000):
         step = 0
         gs = GameState.create_new_game(self._board_size)
         loss = collections.deque(maxlen=1000)
@@ -57,6 +58,9 @@ class Trainer:
                 if self._save_path:
                     torch.save(self._value_network, self._save_path)
                     print(f'Saved value network to path: {self._save_path}')
+            if step < 2000:
+                for g in self._optimizer.param_groups:
+                    g['lr'] = self._learning_rate * step / 2000
             if step % network_update_freq == 0:
                 self._target_network = copy.deepcopy(self._value_network)
 
