@@ -81,7 +81,7 @@ class Trainer:
             if step % network_update_freq == 0 and buffer_filled:
                 self._target_network = copy.deepcopy(self._value_network)
 
-            for _ in range(20):
+            for _ in range(100):
                 if gs.is_game_over():
                     gs = GameState.create_new_game(self._board_size)
 
