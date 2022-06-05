@@ -8,12 +8,14 @@ from value_network import ValueNetwork
 from typing import Tuple
 from evaluation import score_match
 import copy
+import torch
+from torch.utils.tensorboard import SummaryWriter
 
 
 class Trainer:
 
     def __init__(self, value_network: ValueNetwork, board_size, replay_buffer_size, learning_rate,
-                 device, save_path=None, alpha=0.1, gamma=0.9, comparison_policy=None):
+                 device, save_path=None, alpha=0.1, gamma=0.9, comparison_policy=None, experiment_name=''):
         """
 
         :param value_network:
@@ -34,12 +36,14 @@ class Trainer:
         self._er_buffer = ExperienceReplay(size=replay_buffer_size, device=device)
         self._opponent_policy = comparison_policy if comparison_policy else RandomPolicy
 
+        self._summary_writer = SummaryWriter(comment=experiment_name)
+
     def _move_to_action(self, move: Tuple[int, int]):
         action = torch.full((self._board_size, self._board_size), fill_value=False, dtype=torch.bool)
         action[move] = True
         return action
 
-    def train(self, max_steps, batch_size, network_update_freq=50000):
+    def train(self, max_steps, batch_size, network_update_freq=3000):
         step = 0
         gs = GameState.create_new_game(self._board_size)
         loss = collections.deque(maxlen=1000)
@@ -47,19 +51,30 @@ class Trainer:
         self._target_network = copy.deepcopy(self._value_network)
         buffer_filled = False
         while step < max_steps:
-            if step % 500 == 0:
-                print(f'Step: {step}')
-                if len(loss) == loss.maxlen:
-                    print(f'Loss: {sum(loss) / len(loss)}')
-            if step % 500 == 0 and buffer_filled:
-                score = score_match(self._board_size,
-                                    OptimalPolicy(self._value_network),
-                                    self._opponent_policy, num_games=100)
-                print(f'Score in 100 game match: {score}')
-            if step % 2000 == 0 and buffer_filled:
-                if self._save_path:
-                    torch.save(self._value_network, self._save_path)
-                    print(f'Saved value network to path: {self._save_path}')
+            if step > 0:
+                if step % 100 == 0 and len(loss) == loss.maxlen:
+                    self._summary_writer.add_scalar("Loss/train", sum(loss) / len(loss), step)
+                if step % 500 == 0:
+                    print(f'Step: {step}')
+                    if len(loss) == loss.maxlen:
+                        print(f'Loss: {sum(loss) / len(loss)}')
+                if step % 500 == 0 and buffer_filled:
+                    score, avg_flag_lead = score_match(self._board_size,
+                                        OptimalPolicy(self._value_network),
+                                        self._opponent_policy, num_games=100)
+                    score_against_random, avg_flag_lead_random = score_match(
+                        self._board_size, OptimalPolicy(self._value_network), RandomPolicy, num_games=100
+                    )
+                    self._summary_writer.add_scalar("Scores/vs_convnext2_b10", score / 100.0, step)
+                    self._summary_writer.add_scalar("Scores/vs_random", score_against_random / 100.0, step)
+                    self._summary_writer.add_scalar("Scores/flag_lead_vs_convnext2_b10", avg_flag_lead, step)
+                    self._summary_writer.add_scalar("Scores/flag_lead_vs_random", avg_flag_lead_random, step)
+                    print(f'Score vs opponent in 100 game match: {score}')
+                    print(f'Score vs random in 100 game match: {score_against_random}')
+                if step % 2000 == 0 and buffer_filled:
+                    if self._save_path:
+                        torch.save(self._value_network, self._save_path)
+                        print(f'Saved value network to path: {self._save_path}')
             # if step < 10000:
             #     for g in self._optimizer.param_groups:
             #         g['lr'] = self._learning_rate * step / 5000
@@ -82,8 +97,7 @@ class Trainer:
             if len(self._er_buffer) == self._replay_buffer_size:
                 loss.append(self._train_one_step(**self._er_buffer.sample(batch_size)))
                 buffer_filled = True
-
-            step += 1
+                step += 1
 
     def _train_one_step(self, states, actions, rewards, dones, new_states):
         """

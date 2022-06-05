@@ -57,3 +57,30 @@ class ConvNeXt(nn.Module):
 
     def forward(self, x):
         return self.model(x)
+
+
+class Resnet(nn.Module):
+    def __init__(self, input_channels, n_channels=20, n_blocks=5):
+        super(Resnet, self).__init__()
+        module_list = [nn.Conv2d(in_channels=input_channels, out_channels=n_channels, kernel_size=(3, 3), stride=(1, 1),
+                                 padding='same', groups=1)]
+
+        for i in range(n_blocks):
+            module_list.append(SkipBlock(
+                nn.Sequential(
+                    nn.ReLU(),
+                    nn.Conv2d(in_channels=n_channels, out_channels=n_channels, kernel_size=(3, 3), stride=(1, 1),
+                              padding='same', groups=1),
+                    nn.ReLU(),
+                    nn.Conv2d(in_channels=n_channels, out_channels=n_channels, kernel_size=(3, 3), stride=(1, 1),
+                              padding='same', groups=1),
+                )
+            ))
+
+        module_list.append(nn.Conv2d(in_channels=20, out_channels=1, kernel_size=(1, 1), stride=(1, 1),
+                                     padding='same', groups=1))
+
+        self._model = nn.Sequential(*module_list)
+
+    def forward(self, x):
+        return self._model(x)
