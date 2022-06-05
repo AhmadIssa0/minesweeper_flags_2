@@ -30,6 +30,7 @@ class Trainer:
         self._alpha = alpha
         self._gamma = gamma
         self._learning_rate = learning_rate
+        self._replay_buffer_size = replay_buffer_size
         self._er_buffer = ExperienceReplay(size=replay_buffer_size, device=device)
         self._opponent_policy = comparison_policy if comparison_policy else RandomPolicy
 
@@ -38,30 +39,31 @@ class Trainer:
         action[move] = True
         return action
 
-    def train(self, max_steps, batch_size, network_update_freq=5000):
+    def train(self, max_steps, batch_size, network_update_freq=50000):
         step = 0
         gs = GameState.create_new_game(self._board_size)
         loss = collections.deque(maxlen=1000)
 
         self._target_network = copy.deepcopy(self._value_network)
+        buffer_filled = False
         while step < max_steps:
             if step % 500 == 0:
                 print(f'Step: {step}')
                 if len(loss) == loss.maxlen:
                     print(f'Loss: {sum(loss) / len(loss)}')
-            if step % 500 == 0:
+            if step % 500 == 0 and buffer_filled:
                 score = score_match(self._board_size,
                                     OptimalPolicy(self._value_network),
                                     self._opponent_policy, num_games=100)
                 print(f'Score in 100 game match: {score}')
-            if step % 2000 == 0:
+            if step % 2000 == 0 and buffer_filled:
                 if self._save_path:
                     torch.save(self._value_network, self._save_path)
                     print(f'Saved value network to path: {self._save_path}')
-            if step < 2000:
-                for g in self._optimizer.param_groups:
-                    g['lr'] = self._learning_rate * step / 2000
-            if step % network_update_freq == 0:
+            # if step < 10000:
+            #     for g in self._optimizer.param_groups:
+            #         g['lr'] = self._learning_rate * step / 5000
+            if step % network_update_freq == 0 and buffer_filled:
                 self._target_network = copy.deepcopy(self._value_network)
 
             for _ in range(20):
@@ -77,8 +79,9 @@ class Trainer:
                 new_state = self._value_network.game_state_to_input(gs).squeeze(0)
                 self._er_buffer.append(Experience(state, action, reward, done, new_state))
 
-            if len(self._er_buffer) > batch_size * 10:
+            if len(self._er_buffer) == self._replay_buffer_size:
                 loss.append(self._train_one_step(**self._er_buffer.sample(batch_size)))
+                buffer_filled = True
 
             step += 1
 

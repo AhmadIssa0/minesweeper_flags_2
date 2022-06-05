@@ -6,6 +6,7 @@ from gamestate import GameState
 from PIL import ImageTk, Image
 from policy import Policy, OptimalPolicy
 
+
 class MinesweeperGUI(tk.Tk):
 
     def __init__(self, board_size, policy: Policy, window_size=500):

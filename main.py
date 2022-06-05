@@ -32,7 +32,7 @@ def human_vs_ai(value_network, board_size, human_first):
     GameManager(human_first, ai_policy, board_size).play_loop()
 
 def train_ai(value_network, board_size, **kwargs):
-    trainer = Trainer(value_network, board_size, 20000, device=device, save_path=save_path, learning_rate=2e-4, **kwargs)
+    trainer = Trainer(value_network, board_size, 20000, device=device, save_path=save_path, learning_rate=1e-4, **kwargs)
     trainer.train(max_steps=200000, batch_size=300)
     print(score_match(board_size, policy.RandomPolicy, policy.RandomPolicy, num_games=100))
     print(score_match(board_size, policy.OptimalPolicy(value_network), policy.RandomPolicy, num_games=100))
@@ -45,14 +45,14 @@ if __name__ == '__main__':
     load_path = 'convnext2_b10.p'
     value_network = torch.load(load_path)
 
-    #human_vs_ai(value_network, board_size, human_first=True)
+    human_vs_ai(value_network, board_size, human_first=True)
     #value_network = ValueNetwork(VanillaConv(n_channels=20), board_size=board_size, device=device)
     #value_network = ValueNetwork(ConvNeXt(input_channels=ValueNetwork.n_channels, output_channels=1,
     #                             intermediary_channels=50, n_blocks=10), board_size=board_size, device=device)
     print(f'Number of params: {sum(p.numel() for p in value_network.parameters() if p.requires_grad)}')
 
     value_network2 = torch.load('convnext2_b10.p')
-    #train_ai(value_network, board_size, comparison_policy=policy.OptimalPolicy(value_network2))
-    # print(score_match(board_size, policy.OptimalPolicy(value_network2), policy.OptimalPolicy(value_network), 200))
+    train_ai(value_network, board_size, comparison_policy=policy.OptimalPolicy(value_network2))
+    #print(score_match(board_size, policy.OptimalPolicy(value_network2), policy.OptimalPolicy(value_network), 1000))
 
-    print(score_match(board_size, policy.OptimalPolicy(value_network), policy.RandomPolicy, num_games=1000))
+    #print(score_match(board_size, policy.OptimalPolicy(value_network), policy.RandomPolicy, num_games=1000))
