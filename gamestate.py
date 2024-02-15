@@ -103,9 +103,14 @@ class GameState:
         return connected_component
 
     @staticmethod
-    def create_new_game(board_size: int) -> "GameState":
+    def num_total_flags(board_size: int):
         half_size = board_size / 2
         total_flags = half_size ** 2 if half_size % 2 == 1 else (half_size - 1) ** 2
+        return total_flags
+
+    @staticmethod
+    def create_new_game(board_size: int) -> "GameState":
+        total_flags = GameState.num_total_flags(board_size)
 
         flags = set()
         while len(flags) < total_flags:
@@ -125,6 +130,21 @@ class GameState:
         return GameState(board=board, visible=visible, is_blues_turn=True,
                          blue_flags_captured=set(), red_flags_captured=set())
 
+    def board_as_string(self):
+        s = ''
+        for row in range(self.board_size):
+            for col in range(self.board_size):
+                if self.board[row, col] == GameState.FLAG:
+                    c = Fore.BLUE if (row, col) in self.blue_flags_captured else Fore.RED
+                    s += f'{c}*{Style.RESET_ALL}'
+                elif self.board[row, col] == GameState.EMPTY:
+                    s += '-'
+                else:
+                    s += str(self.board[row, col].item())
+                s += ' '
+            s += '\r\n'
+        return s
+
     def __str__(self):
         s = ''
         for row in range(self.board_size):
@@ -141,6 +161,7 @@ class GameState:
                 s += ' '
             s += '\r\n'
         return s
+
 
 if __name__ == '__main__':
     gs = GameState.create_new_game(5)
