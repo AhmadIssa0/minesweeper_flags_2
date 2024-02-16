@@ -130,17 +130,19 @@ class GameState:
         return GameState(board=board, visible=visible, is_blues_turn=True,
                          blue_flags_captured=set(), red_flags_captured=set())
 
-    def board_as_string(self):
+    @staticmethod
+    def board_as_string(board: torch.IntTensor):
+        board_size = board.shape[0]
         s = ''
-        for row in range(self.board_size):
-            for col in range(self.board_size):
-                if self.board[row, col] == GameState.FLAG:
-                    c = Fore.BLUE if (row, col) in self.blue_flags_captured else Fore.RED
+        for row in range(board_size):
+            for col in range(board_size):
+                if board[row, col] == GameState.FLAG:
+                    c = Fore.YELLOW
                     s += f'{c}*{Style.RESET_ALL}'
-                elif self.board[row, col] == GameState.EMPTY:
+                elif board[row, col] == GameState.EMPTY:
                     s += '-'
                 else:
-                    s += str(self.board[row, col].item())
+                    s += str(board[row, col].item())
                 s += ' '
             s += '\r\n'
         return s
