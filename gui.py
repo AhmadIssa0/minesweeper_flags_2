@@ -4,18 +4,18 @@ import tkinter as tk
 from functools import partial
 from gamestate import GameState
 from PIL import ImageTk, Image
-from policy import Policy, OptimalPolicy
+from policy import Policy, OptimalPolicy, NetworkWithSearchPolicy
 
 
 class MinesweeperGUI(tk.Tk):
 
-    def __init__(self, board_size, policy: Policy, window_size=500):
+    def __init__(self, board_size, policy: Policy, window_size=1000):
         super(MinesweeperGUI, self).__init__()
         self._board_size = board_size
         self.geometry(f"{window_size}x{window_size}")
         self.title('Minesweeper Flags')
-        frame = tk.Frame(self)
-        frame.pack(expand=True)
+        self.frame = tk.Frame(self)
+        self.frame.pack(expand=True)
         self._pixel = tk.PhotoImage(width=1, height=1)  # hacky way to force width/height of buttons to be in pixels.
         self._blue_flag_img = ImageTk.PhotoImage(Image.open('flag-blue.png').resize((20, 20)))
         self._red_flag_img = ImageTk.PhotoImage(Image.open('flag-red.png').resize((20, 20)))
@@ -27,15 +27,18 @@ class MinesweeperGUI(tk.Tk):
             buttons.append([])
             for c in range(board_size):
                 button = tk.Button(
-                    frame,
-                    text='',
-                    image=self._pixel,
-                    compound='c',
+                    self.frame,
+                    # text='',
+                    # image=self._pixel,
+                    # compound='c',
                     command=partial(self.button_pressed, r=r, c=c),
-                    borderwidth=1
+                    # borderwidth=1
                 )
-                button.grid(column=c, row=r)
-                button.config(width=window_size // (board_size + 2), height=window_size // (board_size + 2))
+                button.grid(column=c, row=r, sticky='nsew')
+                self.frame.grid_rowconfigure(r, weight=1)
+                self.frame.grid_columnconfigure(c, weight=1)
+                # button.config(width=window_size // (board_size + 2), height=window_size // (board_size + 2))
+                button.config(height=20, width=20)
                 buttons[-1].append(button)
         self.buttons = buttons
 
@@ -94,8 +97,10 @@ class MinesweeperGUI(tk.Tk):
 if __name__ == '__main__':
     import torch
     board_size = 10
+    device = 'cuda'
     load_path = 'convnext2_b10.p'
     value_network = torch.load(load_path)
-    policy = OptimalPolicy(value_network)
+    value_network._device = device
+    policy = NetworkWithSearchPolicy(value_network)
     gui = MinesweeperGUI(board_size=board_size, policy=policy)
     gui.mainloop()

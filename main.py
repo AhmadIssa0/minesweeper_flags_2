@@ -28,7 +28,7 @@ def eval_trained_model(board_size, save_path):
     print(score_match(board_size, policy.OptimalPolicy(value_network), policy.RandomPolicy, num_games=100))
 
 def human_vs_ai(value_network, board_size, human_first):
-    ai_policy = policy.OptimalPolicy(value_network)
+    ai_policy = policy.NetworkWithSearchPolicy(value_network)
     GameManager(human_first, ai_policy, board_size).play_loop()
 
 def train_ai(value_network, board_size, **kwargs):
@@ -43,9 +43,10 @@ if __name__ == '__main__':
     board_size = 10
     save_path = 'resnet10block_b10.p'
     load_path = 'convnext2_b10.p'
-    #value_network = torch.load(load_path)
+    value_network = torch.load(load_path)
 
-    #human_vs_ai(value_network, board_size, human_first=True)
+    human_vs_ai(value_network, board_size, human_first=True)
+    exit(0)
     #value_network = ValueNetwork(VanillaConv(n_channels=20), board_size=board_size, device=device)
     #value_network = ValueNetwork(ConvNeXt(input_channels=ValueNetwork.n_channels, output_channels=1,
     #                             intermediary_channels=50, n_blocks=10), board_size=board_size, device=device)
@@ -53,7 +54,7 @@ if __name__ == '__main__':
     print(f'Number of params: {sum(p.numel() for p in value_network.parameters() if p.requires_grad)}')
 
     value_network2 = torch.load('convnext2_b10.p')
-    train_ai(value_network, board_size, comparison_policy=policy.OptimalPolicy(value_network2), save_path=save_path,
+    train_ai(value_network, board_size, comparison_policy=policy.NetworkWithSearchPolicy(value_network2), save_path=save_path,
              experiment_name='resnet_10_blocks_20_channels_2_cnn_per_block')
     #print(score_match(board_size, policy.OptimalPolicy(value_network2), policy.OptimalPolicy(value_network), 1000))
 

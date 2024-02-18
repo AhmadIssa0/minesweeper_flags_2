@@ -3,7 +3,6 @@
 from gamestate import GameState
 import torch
 import random
-from policy import RandomPolicy
 import torch.nn.functional as F
 
 
@@ -161,11 +160,6 @@ def parallel_tempering(board, visible, temperatures, num_steps, device):
         trajectories = mcmc_update(trajectories, board, visible, temperatures.repeat_interleave(num_boards))
         energies = energy(trajectories, board, visible).view(num_boards, num_temps)
 
-        # if step_num > 0 and energies.min() == 0:
-        #     # print('Energies:', energies)
-        #     # print(GameState.board_as_string(trajectories[energies.argmin()]))
-        #     return True
-
         i = torch.randint(0, num_temps - 2, size=(num_boards,))
         index1 = F.one_hot(i, num_classes=num_temps).bool()
         index2 = F.one_hot(i + 1, num_classes=num_temps).bool()
@@ -185,11 +179,49 @@ def parallel_tempering(board, visible, temperatures, num_steps, device):
                                    trajectories.view(num_boards, num_temps, board_size, board_size)
                                    )
         trajectories = trajectories.view(-1, board_size, board_size)
+    energies = energy(trajectories, board, visible).view(num_boards, num_temps)
+    return trajectories.view(num_boards, num_temps, board_size, board_size), energies
 
-    return trajectories, energies
 
+def sample_hidden_boards(gs, device):
+    temps = [0.001, 0.01, 0.01, 0.1, 0.1, 0.3, 0.3, 0.5, 0.5, 1.0, 1.0, 2.0, 2.0, 4.0, 4.0, 8.0, 100.0,
+             1000.0, 10000.0]
+    trajectories, energies = parallel_tempering(
+        gs.board.to(device=device).unsqueeze(0).expand(500, -1, -1),
+        gs.visible.to(device=device).unsqueeze(0).expand(500, -1, -1),
+        temperatures=temps,
+        num_steps=1000,
+        device=device
+    )
+    # energies has shape [500, len(temps)]
+    # trajectories has shape [500, len(temps), board_size, board_size]
+    solution_flags = trajectories.flatten(0, 1)[energies.flatten() == 0]
+    solution_flag_masks = solution_flags == GameState.FLAG
+    boards = number_of_adjacent_flags(solution_flag_masks)
+    boards[solution_flag_masks] = GameState.FLAG
+    boards = boards.int()
+    if not ((gs.board & gs.visible).unsqueeze(0).to(device=device) == (boards & gs.visible.to(device=device))).all():
+        # Ensure everything is on the same device and in the correct shape
+        gs_board_visible = (gs.board & gs.visible).unsqueeze(0).to(
+            device=device)  # Shape [1, 16, 16] to match batch dimension
+        boards_visible = boards & gs.visible.to(device=device)  # Shape [batch_size, 16, 16]
+
+        # Find where they differ
+        differences = gs_board_visible != boards_visible  # This will be a boolean tensor of shape [batch_size, 16, 16]
+
+        # Get the indices where they differ
+        diff_indices = differences.nonzero()
+
+        # Extract the unique batch indices where differences were found
+        unique_batch_index = diff_indices[:, 0].unique()[0].item()
+        print(GameState.board_as_string(boards[unique_batch_index]))
+        print(energy(solution_flags[unique_batch_index].unsqueeze(0),
+                     gs.board.to(device=device).unsqueeze(0), gs.visible.to(device=device).unsqueeze(0)))
+        exit(0)
+    return boards
 
 def run():
+    from policy import RandomPolicy
     device = 'cuda'
 
     for k in range(100):
@@ -201,14 +233,19 @@ def run():
 
         print(gs)
 
-        temps = [0.001, 0.01, 0.01, 0.1, 0.1, 0.3, 0.3, 0.5, 0.5, 1.0, 1.0, 2.0, 2.0, 4.0, 4.0, 8.0, 100.0, 1000.0, 10000.0]
-        # temps = [0.001, 0.01, 0.1, 0.3, 0.5, 1.0, 2.0, 4.0, 8.0, 100.0, 1000.0, 10000.0]
-        trajectories, energies = parallel_tempering(gs.board.to(device=device).unsqueeze(0).expand(500, -1, -1),
-                                                    gs.visible.to(device=device).unsqueeze(0).expand(500, -1, -1),
-                                                    # temperatures=[0.01, 0.3, 0.4, 0.7, 1.2, 2.0, 4.0, 1000.0],
-                                                    temperatures=temps,
-                                                    num_steps=2000, device=device)
-        print('Number of solutions:', (energies == 0).sum())
+        states = sample_hidden_boards(gs, device)
+        print('Number of sampled states:', len(states))
+        print(GameState.board_as_string(states[0]))
+
+
+        # temps = [0.001, 0.01, 0.01, 0.1, 0.1, 0.3, 0.3, 0.5, 0.5, 1.0, 1.0, 2.0, 2.0, 4.0, 4.0, 8.0, 100.0, 1000.0, 10000.0]
+        # # temps = [0.001, 0.01, 0.1, 0.3, 0.5, 1.0, 2.0, 4.0, 8.0, 100.0, 1000.0, 10000.0]
+        # trajectories, energies = parallel_tempering(gs.board.to(device=device).unsqueeze(0).expand(500, -1, -1),
+        #                                             gs.visible.to(device=device).unsqueeze(0).expand(500, -1, -1),
+        #                                             # temperatures=[0.01, 0.3, 0.4, 0.7, 1.2, 2.0, 4.0, 1000.0],
+        #                                             temperatures=temps,
+        #                                             num_steps=2000, device=device)
+        # print('Number of solutions:', (energies == 0).sum())
 
 
 if __name__ == '__main__':

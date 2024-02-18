@@ -22,6 +22,10 @@ class GameState:
         self.winning_score = self.num_flags_on_board // 2 + 1
         self.board_size = board.size(0)
 
+    def with_new_board_state(self, board: torch.IntTensor):
+        return GameState(board=board, visible=self.visible.to(device=board.device), is_blues_turn=self.is_blues_turn,
+                         blue_flags_captured=self.blue_flags_captured, red_flags_captured=self.red_flags_captured)
+
     def num_blue_flags(self):
         return len(self.blue_flags_captured)
 
