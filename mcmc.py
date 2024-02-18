@@ -68,6 +68,11 @@ def proposal_transition(flag_board: torch.IntTensor, visible: torch.BoolTensor):
 
 
 def number_of_adjacent_flags(flag_mask):
+    """
+
+    :param flag_mask: [B, H, W]
+    :return:
+    """
     # Assuming mask is a 2D boolean tensor (mask.shape = [height, width])
 
     # Add batch and channel dimensions to mask
@@ -323,8 +328,8 @@ def parallel_tempering(board, visible, temperatures, num_steps, device):
 
 def run():
     random.seed(10)
-    device = 'cuda'
-    for k in range(10):
+    device = 'cpu'
+    for k in range(5):
         print('Board:', k)
         gs = GameState.create_new_game(10)
 

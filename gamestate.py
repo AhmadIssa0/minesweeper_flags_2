@@ -104,7 +104,7 @@ class GameState:
 
     @staticmethod
     def num_total_flags(board_size: int):
-        half_size = board_size / 2
+        half_size = board_size // 2
         total_flags = half_size ** 2 if half_size % 2 == 1 else (half_size - 1) ** 2
         return total_flags
 
