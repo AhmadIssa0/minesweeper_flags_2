@@ -12,7 +12,7 @@ class GameState:
     EMPTY = 0
 
     def __init__(self, board: torch.IntTensor, visible: torch.BoolTensor, is_blues_turn, blue_flags_captured: Set,
-                 red_flags_captured: Set):
+                 red_flags_captured: Set, last_move: Tuple = None):
         self.board = board
         self.visible = visible
         self.is_blues_turn = is_blues_turn
@@ -21,6 +21,7 @@ class GameState:
         self.num_flags_on_board = torch.sum(board == GameState.FLAG).item()
         self.winning_score = self.num_flags_on_board // 2 + 1
         self.board_size = board.size(0)
+        self.last_move = last_move
 
     def with_new_board_state(self, board: torch.IntTensor):
         return GameState(board=board, visible=self.visible.to(device=board.device), is_blues_turn=self.is_blues_turn,
@@ -66,6 +67,7 @@ class GameState:
         assert not self.is_game_over(), "Can't make move since game is already over."
         assert not self.visible[row, col], "Can't make move on square that is already revealed."
 
+        move = (row, col)
         if self.board[row, col] == GameState.FLAG:
             new_visible = self.visible.detach().clone()
             new_visible[row, col] = True
@@ -76,17 +78,20 @@ class GameState:
                 new_blue_flags_captured = self.blue_flags_captured.copy()
                 new_red_flags_captured = self.red_flags_captured.union({(row, col)})
             return GameState(board=self.board, visible=new_visible, is_blues_turn=self.is_blues_turn,
-                             blue_flags_captured=new_blue_flags_captured, red_flags_captured=new_red_flags_captured)
+                             blue_flags_captured=new_blue_flags_captured, red_flags_captured=new_red_flags_captured,
+                             last_move=move)
         elif self.board[row, col] == GameState.EMPTY:
             revealed_squares = self._compute_revealed_squares((row, col))
             new_visible = self._create_visible(lambda r, c: (r, c) in revealed_squares or self.visible[r, c])
             return GameState(board=self.board, visible=new_visible, is_blues_turn=not self.is_blues_turn,
-                             blue_flags_captured=self.blue_flags_captured, red_flags_captured=self.red_flags_captured)
+                             blue_flags_captured=self.blue_flags_captured, red_flags_captured=self.red_flags_captured,
+                             last_move=move)
         else:  # made a move on a square adjacent to a mine
             new_visible = self.visible.detach().clone()
             new_visible[row, col] = True
             return GameState(board=self.board, visible=new_visible, is_blues_turn=not self.is_blues_turn,
-                             blue_flags_captured=self.blue_flags_captured, red_flags_captured=self.red_flags_captured)
+                             blue_flags_captured=self.blue_flags_captured, red_flags_captured=self.red_flags_captured,
+                             last_move=move)
 
     def _compute_revealed_squares(self, init_square: (int, int)) -> Set[Tuple[int, int]]:
         """Given an initial squares, returns a list of squares which will be revealed by opening the initial square."""
@@ -155,15 +160,21 @@ class GameState:
         s = ''
         for row in range(self.board_size):
             for col in range(self.board_size):
+                if (row, col) == self.last_move:
+                    s += Back.YELLOW
                 if not self.visible[row, col]:
                     s += '.'
                 elif self.board[row, col] == GameState.FLAG:
                     c = Fore.BLUE if (row, col) in self.blue_flags_captured else Fore.RED
+                    # if (row, col) == self.last_move:
+                    #     c = Fore.LIGHTBLUE_EX if (row, col) in self.blue_flags_captured else Fore.LIGHTRED_EX
                     s += f'{c}*{Style.RESET_ALL}'
                 elif self.board[row, col] == GameState.EMPTY:
                     s += '-'
                 else:
                     s += str(self.board[row, col].item())
+                if (row, col) == self.last_move:
+                    s += f'{Style.RESET_ALL}'
                 s += ' '
             s += '\r\n'
         return s

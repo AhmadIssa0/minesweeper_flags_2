@@ -45,14 +45,22 @@ if __name__ == '__main__':
     load_path = 'convnext2_b10.p'
     value_network = torch.load(load_path)
 
-    human_vs_ai(value_network, board_size, human_first=True)
-    exit(0)
+    # human_vs_ai(value_network, board_size, human_first=True)
+    # exit(0)
     #value_network = ValueNetwork(VanillaConv(n_channels=20), board_size=board_size, device=device)
     #value_network = ValueNetwork(ConvNeXt(input_channels=ValueNetwork.n_channels, output_channels=1,
     #                             intermediary_channels=50, n_blocks=10), board_size=board_size, device=device)
     value_network = ValueNetwork(Resnet(ValueNetwork.n_channels, n_blocks=10), board_size=board_size, device=device)
     print(f'Number of params: {sum(p.numel() for p in value_network.parameters() if p.requires_grad)}')
-
+    print(score_match(board_size,
+                      policy.NetworkWithSearchPolicy(torch.load('resnet10block_b10.p')),
+                      policy.OptimalPolicy(torch.load('resnet10block_b10.p')),
+                      # policy.MaxProbabilityMCMC(),
+                      # policy.OptimalPolicy(torch.load('resnet5block_b10.p')),
+                      num_games=10, verbose=True))
+    # print(score_match(board_size, policy.MaxProbabilityMCMC(), policy.OptimalPolicy(value_network), num_games=1))
+    # print(score_match(board_size, policy.MaxProbabilityMCMC(), policy.NetworkWithSearchPolicy(value_network), num_games=1))
+    exit(0)
     value_network2 = torch.load('convnext2_b10.p')
     train_ai(value_network, board_size, comparison_policy=policy.NetworkWithSearchPolicy(value_network2), save_path=save_path,
              experiment_name='resnet_10_blocks_20_channels_2_cnn_per_block')

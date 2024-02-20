@@ -190,7 +190,7 @@ def sample_hidden_boards(gs, device):
         gs.board.to(device=device).unsqueeze(0).expand(500, -1, -1),
         gs.visible.to(device=device).unsqueeze(0).expand(500, -1, -1),
         temperatures=temps,
-        num_steps=1000,
+        num_steps=500,
         device=device
     )
     # energies has shape [500, len(temps)]
